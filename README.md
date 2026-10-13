@@ -51,10 +51,12 @@ The protocol comes from the generator's operating manual, chapter 7
   (shutters 3, 4). Each shutter has four bits: open command, open status,
   closed unexpectedly, not connected.
 - **Messages:** `SR:12` gives the message code and `ER` its text (door
-  contacts, emergency stop, "Fenster nicht geoeffnet", ...). `SR:01` bit 6
+  contacts, emergency stop, window not open, ...). `SR:01` bit 6
   is high voltage on. `VA` and `CA` give the actual kV and mA, as V and µA.
-- **Never sent:** the driver sends only `OS`, `CS` and read-only queries.
-  It never sends HV, kV, mA, warm-up or keyboard-lock commands.
+- **What is sent:** the shutter sends only `OS`, `CS` and read-only queries.
+  The generator sends `HV`, `SV`, `SC`, `CL` and `WU` only when you call the
+  matching command (`hv_on()`, `ramp_to()`, `clear_message()`, `warmup()`, ...),
+  and never the keyboard-lock command.
 
 ## Behaviour
 
@@ -71,12 +73,16 @@ The protocol comes from the generator's operating manual, chapter 7
   (tested 2026-10-06). With door 2 open, every status word read the same as
   with the doors closed. On `OS:1` the generator's safety circuit refused the
   shutter, showed "? Safety circuit 1 and 2 open" (code 63) and **switched HV
-  off**. Do not open the shutter with a door open. A real door pre-check needs
-  the door sensor itself, the Pilz PNOZ relay on /dev/ttyS6 (not implemented).
+  off**. A door pre-check therefore needs the door sensor itself:
+  `door_check: doors` names a door object (on the XRD-3003TT the Pilz PNOZ
+  safety relay, read-only, in `xrd3003_bliss.doors`). `open()` asks it before
+  anything moves or is sent to the generator, and refuses unless every door
+  reads closed, without the generator ever seeing an open attempt.
 - **Confirmation.** `open()` and `close()` wait until the generator reports
   the new state (`move_timeout`, 5 s). If it doesn't, they raise with the
-  generator's message, e.g. "TUERKONTAKT 2 GEOEFFNET, code 65 = door
-  contact 2 open".
+  generator's message, e.g. "? Safety circuit 1 and 2 open, code 63 = door
+  contacts 1 and 2 open" (this unit's messages are in English; the manual
+  lists them in German).
 - **A failed open withdraws its open command** (sends `CS`), so the shutter
   cannot open by itself later, for instance once the door is closed.
 - **States:** OPEN, CLOSED, MOVING (opening or closing), and FAULT when the
@@ -93,15 +99,26 @@ The protocol comes from the generator's operating manual, chapter 7
 
 ## Tests
 
-`tests/bliss_e2e.py` runs the shutter against a fake generator on a
-pseudo-terminal (`tests/fake_generator.py`, built from the manual), with a
-mockup motor as `a2`. It covers the absorber gating, confirmation, an open
-door, unexpected closure, a disconnected shutter, and the context managers.
-The setup is in its docstring.
+The tests need no hardware. `tests/fake_generator.py` (built from the manual)
+serves a fake generator on a pseudo-terminal; its docstring lists the test
+hooks (door, emergency stop, trips, ...).
 
-## Not yet verified on hardware
+- `tests/bliss_e2e.py` runs the shutter, with a mockup motor as `a2`: absorber
+  gating, confirmation, an open door, unexpected closure, a disconnected
+  shutter, and the context managers.
+- `tests/bliss_e2e_generator.py` runs the generator: readings, ramps and
+  their order, limits, HV on/off and messages.
+- `tests/test_generator.py` checks the ramp steps without Bliss
+  (`python -m unittest discover -s tests`).
 
-- **Status layout.** The manual's bit layout of `SR:03` and the reply format
-  are taken from the scan.
-- **Timing.** How long the shutter takes to report open or closed is unknown;
-  5 s is assumed to be ample.
+The setup of the Bliss tests is in their docstrings.
+
+## On the XRD-3003TT
+
+Used since October 2026. Confirmed there: the `SR:03` bit layout and the
+reply format; the shutter reports open after about 2.7 s and closed after
+about 1.2 s (`move_timeout` 5 s); a current ramp 30 → 25 → 30 mA was
+followed within 3 s.
+
+Not tried on the hardware yet: switching high voltage with `generator_on()` /
+`generator_off()`, and `warmup()`.
