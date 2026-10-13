@@ -1,0 +1,23 @@
+# Shutter 1 of the GE ISO-DEBYEFLEX 3003 generator, replacing spec's
+# shopen/shclose (/usr/local/lib/spec.d/site.mac):
+#   shopen:  mv a2 6.0; waitmove; GEIT_gen_os 1  -> "OS:1\r" on SDEV_0
+#   shclose: GEIT_gen_cs 1                       -> "CS:1\r" on SDEV_0
+#   SDEV_0 = /dev/ttyS7 9600 raw
+# Shutter 3's circuit is broken (site.mac comment, 2017), hence shutter 1.
+#
+# The state is read from the generator (status word SR:03, manual chapter 7,
+# docs/ISO-DEBYEFLEX_3003_Schnittstelle_p47-54.pdf). Only one program can hold
+# /dev/ttyS7: do not use this while spec is running.
+
+- plugin: bliss
+  package: isovolt_driver.bliss_isovolt
+  class: IsovoltShutter
+  name: shutter
+  generator: generator        # uses the generator object's serial line (/dev/ttyS7)
+  shutter: 1
+  absorber: a2                # axis name (not $a2): moved to maximum before opening
+  absorber_position: 6.0
+  absorber_tolerance: 0.01
+  move_timeout: 5.0           # s to wait for the generator to report open/closed
+  door_check: doors           # PNOZ door state: refuse to open unless both doors are closed
+                              # (the generator cannot tell, and trips HV on a blocked open)

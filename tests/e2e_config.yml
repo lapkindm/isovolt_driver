@@ -1,0 +1,20 @@
+- plugin: bliss
+  package: isovolt_driver.bliss_isovolt
+  class: IsovoltShutter
+  name: shutter
+  serial:
+    url: <LINK>
+    baudrate: 9600
+  shutter: 1
+  absorber: a2
+  absorber_position: 6.0
+
+- plugin: emotion
+  class: mockup
+  axes:
+    - name: a2
+      steps_per_unit: 3200
+      velocity: 4
+      acceleration: 32
+      low_limit: -1
+      high_limit: 7

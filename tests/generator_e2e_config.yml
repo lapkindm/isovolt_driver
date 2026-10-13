@@ -1,0 +1,29 @@
+- plugin: bliss
+  package: isovolt_driver.generator
+  class: IsovoltGenerator
+  name: generator
+  serial:
+    url: <LINK>
+    baudrate: 9600
+  max_kv: 40
+  max_ma: 30
+  max_power: 1200
+
+- plugin: bliss
+  package: isovolt_driver.bliss_isovolt
+  class: IsovoltShutter
+  name: shutter
+  generator: generator        # shares the generator's serial line
+  shutter: 1
+  absorber: a2
+  absorber_position: 6.0
+
+- plugin: emotion
+  class: mockup
+  axes:
+    - name: a2
+      steps_per_unit: 3200
+      velocity: 40
+      acceleration: 320
+      low_limit: 0.9
+      high_limit: 6.1

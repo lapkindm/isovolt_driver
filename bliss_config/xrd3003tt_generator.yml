@@ -1,0 +1,22 @@
+# GE ISO-DEBYEFLEX 3003 generator control, replacing spec's generator macros
+# (site.mac: GEIT_gen_hv, GEIT_gen_set_v/c, generator_on, generator_off).
+# Owns the serial line /dev/ttyS7; the shutter uses it through "generator: generator".
+#
+# Limits: ramp_to() refuses setpoints outside them. Set to the operating point
+# used under spec (40 kV / 30 mA, Cu tube); raise them to the tube's ratings if needed.
+
+- plugin: bliss
+  package: isovolt_driver.generator
+  class: IsovoltGenerator
+  name: generator
+  serial:
+    url: /dev/ttyS7
+    baudrate: 9600
+  max_kv: 40
+  max_ma: 30
+  max_power: 1200      # W
+  min_kv: 10           # spec's generator_off end point
+  min_ma: 10
+  step_kv: 10          # ramp steps and dwell, as spec's generator_off
+  step_ma: 5
+  step_time: 30        # s
